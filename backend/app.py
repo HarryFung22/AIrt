@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware 
 import torch
-from torch import autocast
 from diffusers import DiffusionPipeline
 from io import BytesIO
 import base64
@@ -27,5 +26,10 @@ pipe.to("cuda")
 @app.get("/")
 def generate(prompt: str):
     image = pipe(prompt=prompt).images[0]
-    image.save("testimage.png")
-    return{"out": "gurt"}
+    
+    #encode img to pass back in res
+    buffer = BytesIO()
+    image.save(buffer, format = "PNG")
+    imgstr = base64.b64encode(buffer.getvalue())
+
+    return Response(content = imgstr, media_type = "image/png")
