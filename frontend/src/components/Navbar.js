@@ -9,7 +9,7 @@ const Navbar = () => {
       </div>
       <div className="font-bold text-black text-4xl">AIrt</div>
       <button className="py-3 px-6 bg-blue-600 text-white font-bold rounded-full text-lg">
-        Get in touch
+        View More
       </button>
     </nav>
   );

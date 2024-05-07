@@ -1,35 +1,44 @@
+import json
 import os
-from dotenv import load_dotenv
-from fastapi import FastAPI, Response
-from fastapi.middleware.cors import CORSMiddleware 
-import torch
-from diffusers import DiffusionPipeline
-from io import BytesIO
+import urllib.request
+import io
+from PIL import Image
+import uuid
+import boto3
 import base64
 
-load_dotenv()
-api_key = os.environ.get('API_KEY')
+API_URL = "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0"
+API_TOKEN = os.environ['API_KEY']
+bucket_name = os.environ['S3_BUCKET']
+s3_client = boto3.client('s3', region_name='us-east-1')
+s3 = boto3.resource('s3', region_name='us-east-1')
 
-app = FastAPI()
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials = True,
-    allow_origins = ["*"],
-    allow_methods = ["*"],
-    allow_headers = ["*"]
-)
+headers = {"Authorization": f"Bearer {API_TOKEN}"}
 
-#for model
-pipe = DiffusionPipeline.from_pretrained("stabilityai/stable-diffusion-xl-base-1.0", torch_dtype=torch.float16, use_safetensors=True, variant="fp16")
-pipe.to("cuda")
+def query(payload):
+    req = urllib.request.Request(API_URL, headers=headers, method='POST')
+    with urllib.request.urlopen(req, json.dumps(payload).encode('utf-8')) as response:
+        return response.read() 
 
-@app.get("/")
-def generate(prompt: str):
-    image = pipe(prompt=prompt).images[0]
+def upload_image(image_bytes, prmpt):
+    image_name = prmpt + str(uuid.uuid4()) + '.png'
+    s3.Object(bucket_name, image_name).put(Body=image_bytes, ContentType='image/png')
+    presigned_url = s3_client.generate_presigned_url(ClientMethod='get_object', Params={'Bucket': bucket_name, 'Key': image_name}, ExpiresIn=1000)
+    return presigned_url
+
+def lambda_handler(event, context):
+    custom_input = event.get('data', 'Crying face')
     
-    #encode img to pass back in res
-    buffer = BytesIO()
-    image.save(buffer, format = "PNG")
-    imgstr = base64.b64encode(buffer.getvalue())
+    image_bytes = query({"inputs": custom_input})
 
-    return Response(content = imgstr, media_type = "image/png")
+    url = upload_image(image_bytes, custom_input)
+    
+    return {
+        'statusCode': 200,
+        'headers': {
+            'Access-Control-Allow-Headers': 'Content-Type',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
+        },
+        'body': url
+    }

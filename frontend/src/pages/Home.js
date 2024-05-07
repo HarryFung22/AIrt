@@ -2,39 +2,11 @@ import React, { useState } from 'react';
 import { Input, Button, Box, Text, VStack, Image, Container } from '@chakra-ui/react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSave } from '@fortawesome/free-solid-svg-icons';
-import AWS from 'aws-sdk';
-// import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 const Home = () => {
   const [prompt, setPrompt] = useState('');
   const [image, setImage] = useState(null);
   const [hoverState, setHoverState] = useState(false);  
-
-  //s3 setup
-  const region =  process.env.REACT_APP_REGION;
-  const bucket =  process.env.REACT_APP_BUCKET;
-  const accessKey =  process.env.REACT_APP_ACCESS_KEY;
-  const secretKey =  process.env.REACT_APP_SECRET_ACCESS_KEY;
-
-  AWS.config.update({
-    region: region,
-    accessKeyId: accessKey,
-    secretAccessKey: secretKey
-  });
-
-  const s3 = new AWS.S3();
-
-  const uploadToS3 = async ({key, text}) => {
-    const params = {Bucket: bucket, Key: key, Body: text, ContentType: 'text/plain'};
-
-    try {
-      await s3.putObject(params).promise();
-      console.log("Successfully uploaded text to " + bucket + "/" + key);
-    } catch (err) {
-      console.error("Error uploading text: ", err);
-    }
-
-  }
 
   const handleGenerateImage = async () => {
     const response = await fetch('https://fs9n2dmkua.execute-api.us-east-1.amazonaws.com/diffusion', {
