@@ -37,16 +37,17 @@ const Home = () => {
   }
 
   const handleGenerateImage = async () => {
-    const response = await fetch(`http://localhost:8000?prompt=${prompt}`, {
-      method: 'GET',
+    const response = await fetch('https://fs9n2dmkua.execute-api.us-east-1.amazonaws.com/diffusion', {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({data: prompt})
     });
 
     if(response.ok){
-      const imgData = await response.text();
-      setImage(imgData);
+      const json = await response.json();
+      setImage(json.body);
     }
   }
 
@@ -95,11 +96,11 @@ const Home = () => {
               onMouseLeave={() => setHoverState(false)}
             >
               <Image 
-                src={`data:image/png;base64,${image}`} 
+                src={image} 
                 alt="Generated" 
                 style={{ width: '100%', height: '100%', filter: hoverState ? 'grayscale(100%)' : 'none' }}
               />
-              {hoverState && (
+              {/* {hoverState && (
                 <Button 
                   onClick={() => uploadToS3({key: prompt, text: image})}
                   position="absolute"
@@ -111,7 +112,7 @@ const Home = () => {
                 >
                   <FontAwesomeIcon icon={faSave} />
                 </Button>
-              )}
+              )} */}
             </Box>
           )}
         </VStack>
